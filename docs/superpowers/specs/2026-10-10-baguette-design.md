@@ -83,6 +83,8 @@ Responsabilités :
   nom du fichier à gauche ; à droite, curseur **Tolérance** (0–255, défaut 32, valeur affichée)
   et bouton **⚙︎** ouvrant un popover : *Contigu* (défaut : oui), *Lisser les bords*
   (anticrénelage, défaut : oui), *Contour progressif* (0–50 px, défaut : 0).
+  Tout à droite, un bouton **Exporter** (icône de partage + libellé, style proéminent,
+  désactivé tant que l'image n'a pas été ouverte) qui lance le même export que ⌘⇧E.
   Les réglages sont mémorisés (`@AppStorage`).
 - **État vide** : icône baguette, « Glisse une image ici », bouton « Ouvrir… ⌘O ».
   Barre d'outils et barre d'actions masquées tant qu'aucune image n'est ouverte.
