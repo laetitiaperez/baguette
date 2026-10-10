@@ -33,6 +33,7 @@ Une petite app macOS en Swift qui ne fait qu'une chose : la « baguette magique 
   Inverser la sélection ; tolérance (0–255) ; case « contigu » ; anticrénelage on/off ;
   contour progressif (rayon en px). Supprimer efface la sélection.
 - **Environnement** : pas d'Xcode installé, seulement les Command Line Tools (Swift 6.4, macOS 27).
+- **Tests** : avec les seules Command Line Tools, le plugin de macros Swift Testing n'est pas trouvé ; `Package.swift` passe `-plugin-path` (unsafeFlags) à la cible de test pour que `swift test` fonctionne.
 - **Approche 1 retenue** : Swift Package (`swift build` / `swift test`) + script qui assemble `Baguette.app`.
   Module `WandCore` (Swift pur, testé) + app `Baguette` (SwiftUI, canevas AppKit).
 - **Langage** : algorithme porté de Rust vers Swift (pas de FFI), avec attribution MIT/Apache.
