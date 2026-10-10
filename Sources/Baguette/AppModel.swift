@@ -32,7 +32,9 @@ final class AppModel {
             guard response == .OK, let url = panel?.url else { return }
             self?.open(url)
         }
-        if let window = NSApp.keyWindow ?? NSApp.mainWindow {
+        let window = NSApp.keyWindow ?? NSApp.mainWindow
+            ?? NSApp.windows.first { $0.isVisible && $0.styleMask.contains(.titled) && !($0 is NSPanel) }
+        if let window {
             panel.beginSheetModal(for: window, completionHandler: handler)
         } else {
             handler(panel.runModal())
@@ -41,6 +43,10 @@ final class AppModel {
 
     /// Ouvre une image, en demandant confirmation si l'image actuelle a des modifications non exportées.
     func open(_ url: URL) {
+        guard url.isFileURL else {
+            showsLoadError = true
+            return
+        }
         if editor.isDirty {
             pendingURL = url
         } else {

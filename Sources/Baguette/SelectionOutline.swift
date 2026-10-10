@@ -74,16 +74,17 @@ struct SelectionOutline {
 
     /// Image gris + alpha (blanc prémultiplié, alpha = masque) servant de masque de calque à la teinte.
     static func alphaImage(_ mask: Mask) -> CGImage? {
-        var bytes = [UInt8](repeating: 0, count: mask.values.count * 2)
+        var data = Data(count: mask.values.count * 2)
         mask.values.withUnsafeBufferPointer { src in
-            bytes.withUnsafeMutableBufferPointer { dst in
+            data.withUnsafeMutableBytes { raw in
+                let dst = raw.bindMemory(to: UInt8.self)
                 for i in 0..<src.count {
                     dst[2 * i] = src[i]
                     dst[2 * i + 1] = src[i]
                 }
             }
         }
-        guard let provider = CGDataProvider(data: Data(bytes) as CFData) else { return nil }
+        guard let provider = CGDataProvider(data: data as CFData) else { return nil }
         return CGImage(width: mask.width, height: mask.height, bitsPerComponent: 8, bitsPerPixel: 16,
                        bytesPerRow: mask.width * 2, space: CGColorSpaceCreateDeviceGray(),
                        bitmapInfo: CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedLast.rawValue),
