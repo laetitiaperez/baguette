@@ -29,4 +29,7 @@ Une petite app macOS en Swift qui ne fait qu'une chose : la « baguette magique 
 ## Décisions
 - **Usage** : la zone sélectionnée est **effacée** (fond transparent), puis l'image est **exportée en PNG**.
   Pas de presse-papiers ni de remplissage pour l'instant.
+- **Sélection (option C)** : clic = nouvelle sélection ; ⇧+clic = ajouter ; ⌥+clic = soustraire ;
+  Inverser la sélection ; tolérance (0–255) ; case « contigu » ; anticrénelage on/off ;
+  contour progressif (rayon en px). Supprimer efface la sélection.
 - **Langage** : algorithme porté de Rust vers Swift (pas de FFI), avec attribution MIT/Apache.
