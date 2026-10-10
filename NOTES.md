@@ -27,6 +27,7 @@ Une petite app macOS en Swift qui ne fait qu'une chose : la « baguette magique 
 - Icône : `assets/icons/wand.svg`, `wand-sparkles.svg` (même licence).
 
 ## Décisions
+- **Géométrie du canevas** : `CanvasGeometry` (vue à origine en haut-gauche, en points) ; `fit` n'agrandit jamais au-delà de 100 % et renvoie zoom 1 / origine nulle si image ou vue de taille nulle.
 - **Lecture d'images** : `ImageFile.load` applique l'orientation EXIF (sans réduire), convertit en sRGB 8 bits, dé-prémultiplie ; seule la première image d'un fichier multi-images est chargée. `cgImage` produit un CGImage sRGB à alpha droit.
 - **Usage** : la zone sélectionnée est **effacée** (fond transparent), puis l'image est **exportée en PNG**.
   Pas de presse-papiers ni de remplissage pour l'instant.
