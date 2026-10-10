@@ -8,11 +8,8 @@ struct ContentView: View {
 
     var body: some View {
         ZStack {
-            if let image = model.editor.image {
-                Image(decorative: ImageFile.cgImage(image), scale: 1)
-                    .resizable()
-                    .scaledToFit()
-                    .padding(20)
+            if model.editor.image != nil {
+                CanvasView(model: model, image: model.editor.image, selection: model.editor.selection)
             } else {
                 EmptyState(open: model.showOpenPanel)
             }

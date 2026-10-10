@@ -15,6 +15,9 @@ final class AppModel {
     /// Alerte « Impossible d'ouvrir cette image ».
     var showsLoadError = false
 
+    /// Vue de dessin du canevas, pour les commandes de zoom (posée par `CanvasView`).
+    @ObservationIgnored weak var canvas: CanvasNSView?
+
     var hasImage: Bool { editor.image != nil }
     var hasSelection: Bool { editor.selection != nil }
 
@@ -59,6 +62,7 @@ final class AppModel {
             }.value
             switch result {
             case .success(let image):
+                canvas?.zoomToFit()
                 editor.load(image)
                 fileURL = url
             case .failure:
@@ -66,4 +70,10 @@ final class AppModel {
             }
         }
     }
+
+    // MARK: - Zoom
+
+    func zoomIn() { canvas?.zoom(by: 1.25) }
+    func zoomOut() { canvas?.zoom(by: 1 / 1.25) }
+    func zoomToFit() { canvas?.zoomToFit() }
 }

@@ -60,5 +60,17 @@ struct BaguetteCommands: Commands {
             Button("Ouvrir…") { model.showOpenPanel() }
                 .keyboardShortcut("o")
         }
+        CommandGroup(before: .toolbar) {
+            Button("Zoom avant") { model.zoomIn() }
+                .keyboardShortcut("+")
+                .disabled(!model.hasImage)
+            Button("Zoom arrière") { model.zoomOut() }
+                .keyboardShortcut("-")
+                .disabled(!model.hasImage)
+            Button("Ajuster à la fenêtre") { model.zoomToFit() }
+                .keyboardShortcut("0")
+                .disabled(!model.hasImage)
+            Divider()
+        }
     }
 }
