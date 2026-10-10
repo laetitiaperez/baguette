@@ -36,3 +36,4 @@ Une petite app macOS en Swift qui ne fait qu'une chose : la « baguette magique 
 - **Approche 1 retenue** : Swift Package (`swift build` / `swift test`) + script qui assemble `Baguette.app`.
   Module `WandCore` (Swift pur, testé) + app `Baguette` (SwiftUI, canevas AppKit).
 - **Langage** : algorithme porté de Rust vers Swift (pas de FFI), avec attribution MIT/Apache.
+- **Interface et erreurs/tests validés** ; dépôt GitHub **privé**. Spec : `docs/superpowers/specs/2026-10-10-baguette-design.md`.
