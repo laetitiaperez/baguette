@@ -1,12 +1,14 @@
 import SwiftUI
 
 /// Barre du haut, intégrée à la barre de titre : le nom du fichier est le titre de la fenêtre (à gauche) ;
-/// à droite, tolérance et options. (Le bouton Exporter viendra se placer tout à droite.)
+/// à droite, tolérance, options et, tout à droite, le bouton Exporter (même action que ⌘⇧E).
 struct TopBar: ToolbarContent {
     @Binding var tolerance: Int
     @Binding var contiguous: Bool
     @Binding var antiAlias: Bool
     @Binding var featherRadius: Double
+    let canExport: Bool
+    let export: () -> Void
 
     var body: some ToolbarContent {
         ToolbarItem(placement: .primaryAction) {
@@ -14,6 +16,15 @@ struct TopBar: ToolbarContent {
         }
         ToolbarItem(placement: .primaryAction) {
             OptionsButton(contiguous: $contiguous, antiAlias: $antiAlias, featherRadius: $featherRadius)
+        }
+        ToolbarItem(placement: .primaryAction) {
+            Button(action: export) {
+                Label("Exporter", systemImage: "square.and.arrow.up")
+                    .labelStyle(.titleAndIcon)
+            }
+            .buttonStyle(.borderedProminent)
+            .help("Exporter en PNG (⌘⇧E)")
+            .disabled(!canExport)
         }
     }
 }

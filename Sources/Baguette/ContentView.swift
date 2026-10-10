@@ -23,17 +23,26 @@ struct ContentView: View {
             }
         }
         .overlay(alignment: .bottom) {
-            if model.hasSelection {
-                ActionBar(editor: model.editor)
-                    .padding(.bottom, 20)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            // Le toast se place au-dessus de la barre d'actions quand les deux sont visibles.
+            VStack(spacing: 12) {
+                if let toast = model.toast {
+                    Toast(message: toast)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+                if model.hasSelection {
+                    ActionBar(editor: model.editor)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
             }
+            .padding(.bottom, 20)
         }
         .animation(.spring(duration: 0.3), value: model.hasSelection)
+        .animation(.easeOut(duration: 0.25), value: model.toast)
         .toolbar {
             if model.hasImage {
                 TopBar(tolerance: $tolerance, contiguous: $contiguous,
-                       antiAlias: $antiAlias, featherRadius: $featherRadius)
+                       antiAlias: $antiAlias, featherRadius: $featherRadius,
+                       canExport: model.hasImage, export: model.showExportPanel)
             }
         }
         .toolbar(model.hasImage ? .visible : .hidden, for: .windowToolbar)
@@ -57,12 +66,22 @@ struct ContentView: View {
         .alert("Impossible d'ouvrir cette image", isPresented: $model.showsLoadError) {
             Button("OK", role: .cancel) {}
         }
+        .alert("Impossible d'exporter l'image", isPresented: exportErrorBinding) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text(model.exportError ?? "")
+        }
         .alert("Ignorer les modifications ?", isPresented: discardAlertBinding) {
             Button("Annuler", role: .cancel) { model.pendingURL = nil }
             Button("Ignorer", role: .destructive) { model.discardChangesAndOpenPending() }
         } message: {
             Text("Les modifications de l'image actuelle n'ont pas été exportées.")
         }
+    }
+
+    private var exportErrorBinding: Binding<Bool> {
+        Binding(get: { model.exportError != nil },
+                set: { if !$0 { model.exportError = nil } })
     }
 
     private var discardAlertBinding: Binding<Bool> {

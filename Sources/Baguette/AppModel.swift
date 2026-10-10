@@ -4,7 +4,7 @@ import UniformTypeIdentifiers
 import WandCore
 
 /// État de l'app partagé entre la fenêtre et les menus : l'éditeur, le fichier ouvert,
-/// les alertes d'ouverture et l'accès au canevas pour le zoom.
+/// les alertes d'ouverture et d'export, le toast et l'accès au canevas pour le zoom.
 @MainActor @Observable
 final class AppModel {
     let editor = Editor()
@@ -14,6 +14,11 @@ final class AppModel {
     var pendingURL: URL?
     /// Alerte « Impossible d'ouvrir cette image ».
     var showsLoadError = false
+    /// Message de l'alerte d'échec d'export (message système).
+    var exportError: String?
+    /// Toast affiché en bas de la fenêtre (« Exporté »), masqué automatiquement après 2 s.
+    private(set) var toast: String?
+    @ObservationIgnored private var toastTask: Task<Void, Never>?
 
     /// Vue de dessin du canevas, pour les commandes de zoom (posée par `CanvasView`).
     @ObservationIgnored weak var canvas: CanvasNSView?
@@ -32,9 +37,7 @@ final class AppModel {
             guard response == .OK, let url = panel?.url else { return }
             self?.open(url)
         }
-        let window = NSApp.keyWindow ?? NSApp.mainWindow
-            ?? NSApp.windows.first { $0.isVisible && $0.styleMask.contains(.titled) && !($0 is NSPanel) }
-        if let window {
+        if let window = Self.mainWindow {
             panel.beginSheetModal(for: window, completionHandler: handler)
         } else {
             handler(panel.runModal())
@@ -75,6 +78,73 @@ final class AppModel {
                 showsLoadError = true
             }
         }
+    }
+
+    // MARK: - Export
+
+    /// Nom proposé pour l'export : `<nom>-baguette.png`.
+    var exportFileName: String { Exporter.suggestedName(for: fileURL) }
+
+    /// ⌘⇧E / bouton Exporter : panneau d'enregistrement (en feuille sur la fenêtre), puis écriture du PNG.
+    func showExportPanel() {
+        guard editor.image != nil else { return }
+        let panel = NSSavePanel()
+        panel.allowedContentTypes = [.png]
+        panel.nameFieldStringValue = exportFileName
+        panel.directoryURL = fileURL?.deletingLastPathComponent()
+        panel.canCreateDirectories = true
+        let handler: (NSApplication.ModalResponse) -> Void = { [weak self, weak panel] response in
+            guard response == .OK, let url = panel?.url else { return }
+            self?.export(to: url)
+        }
+        if let window = Self.mainWindow {
+            panel.beginSheetModal(for: window, completionHandler: handler)
+        } else {
+            handler(panel.runModal())
+        }
+    }
+
+    /// Écrit l'image courante en PNG ; succès → image marquée exportée + toast, échec → alerte.
+    func export(to url: URL) {
+        guard let image = editor.image else { return }
+        do {
+            try Exporter.write(image, to: url)
+            didExport(image)
+        } catch {
+            exportError = error.localizedDescription
+        }
+    }
+
+    /// Glisser hors du canevas (⌘ + glisser) : promesse de fichier PNG pour l'image courante.
+    func dragPromise() -> PNGFilePromise? {
+        guard let image = editor.image else { return nil }
+        return PNGFilePromise(image: image, fileName: exportFileName,
+                              onWritten: { [weak self] in self?.didExport(image) },
+                              onFailure: { [weak self] in self?.exportError = $0.localizedDescription })
+    }
+
+    /// L'image exportée n'est marquée « exportée » que si elle est toujours celle affichée.
+    private func didExport(_ image: RGBAImage) {
+        if editor.image == image { editor.markExported() }
+        showToast("Exporté")
+    }
+
+    private func showToast(_ message: String) {
+        toastTask?.cancel()
+        toast = message
+        NSAccessibility.post(element: NSApp as Any, notification: .announcementRequested,
+                             userInfo: [.announcement: message, .priority: NSAccessibilityPriorityLevel.medium.rawValue])
+        toastTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(2))
+            guard !Task.isCancelled else { return }
+            self?.toast = nil
+        }
+    }
+
+    /// Fenêtre principale de l'app (hors panneaux), pour y attacher les feuilles.
+    static var mainWindow: NSWindow? {
+        NSApp.keyWindow.flatMap { $0 is NSPanel ? nil : $0 } ?? NSApp.mainWindow
+            ?? NSApp.windows.first { $0.isVisible && $0.styleMask.contains(.titled) && !($0 is NSPanel) }
     }
 
     // MARK: - Zoom
