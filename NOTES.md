@@ -39,3 +39,4 @@ Une petite app macOS en Swift qui ne fait qu'une chose : la « baguette magique 
 - **Langage** : algorithme porté de Rust vers Swift (pas de FFI), avec attribution MIT/Apache.
 - **Interface et erreurs/tests validés** ; dépôt GitHub **privé**. Spec : `docs/superpowers/specs/2026-10-10-baguette-design.md`.
 - **Bouton Exporter** en haut à droite de la barre (demande du 10/10/2026), même action que ⌘⇧E.
+- **Contour progressif** : flou gaussien séparable (σ = rayon / 2, noyau de demi-largeur ⌈rayon⌉, bords répétés), intermédiaire en `Float`, arrondi final. **Effacer** : alpha × (255 − masque) / 255, arrondi ; RVB inchangé.
