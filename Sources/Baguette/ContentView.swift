@@ -5,6 +5,8 @@ import WandCore
 struct ContentView: View {
     @Bindable var model: AppModel
     @ViewState private var isDropTargeted = false
+    /// Gestionnaire d'annulation de la fenêtre, confié à l'éditeur (Édition › Annuler / Rétablir).
+    @Environment(\.undoManager) private var undoManager
 
     // Réglages mémorisés, recopiés dans l'éditeur.
     @AppStorage("tolerance") private var tolerance = 32
@@ -20,6 +22,14 @@ struct ContentView: View {
                 EmptyState(open: model.showOpenPanel)
             }
         }
+        .overlay(alignment: .bottom) {
+            if model.hasSelection {
+                ActionBar(editor: model.editor)
+                    .padding(.bottom, 20)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .animation(.spring(duration: 0.3), value: model.hasSelection)
         .toolbar {
             if model.hasImage {
                 TopBar(tolerance: $tolerance, contiguous: $contiguous,
@@ -28,6 +38,9 @@ struct ContentView: View {
         }
         .toolbar(model.hasImage ? .visible : .hidden, for: .windowToolbar)
         .navigationTitle(model.fileURL?.lastPathComponent ?? "Baguette")
+        .onChange(of: undoManager.map(ObjectIdentifier.init), initial: true) {
+            model.editor.undoManager = undoManager
+        }
         .onChange(of: tolerance, initial: true) { model.editor.tolerance = min(max(tolerance, 0), 255) }
         .onChange(of: contiguous, initial: true) { model.editor.contiguous = contiguous }
         .onChange(of: antiAlias, initial: true) { model.editor.antiAlias = antiAlias }

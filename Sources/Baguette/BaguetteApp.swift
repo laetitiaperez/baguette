@@ -59,6 +59,17 @@ struct BaguetteCommands: Commands {
             Button("Ouvrir…") { model.showOpenPanel() }
                 .keyboardShortcut("o")
         }
+        CommandGroup(replacing: .pasteboard) {
+            Button("Effacer") { model.editor.eraseSelection() }
+                .keyboardShortcut(.delete, modifiers: [])
+                .disabled(!model.hasSelection)
+            Button("Inverser") { model.editor.invertSelection() }
+                .keyboardShortcut("i", modifiers: [.command, .shift])
+                .disabled(!model.hasImage)
+            Button("Désélectionner") { model.editor.deselect() }
+                .keyboardShortcut("d")
+                .disabled(!model.hasSelection)
+        }
         CommandGroup(before: .toolbar) {
             Button("Zoom avant") { model.zoomIn() }
                 .keyboardShortcut("+")
@@ -66,7 +77,7 @@ struct BaguetteCommands: Commands {
             Button("Zoom arrière") { model.zoomOut() }
                 .keyboardShortcut("-")
                 .disabled(!model.hasImage)
-            Button("Ajuster à la fenêtre") { model.zoomToFit() }
+            Button("Ajuster") { model.zoomToFit() }
                 .keyboardShortcut("0")
                 .disabled(!model.hasImage)
             Divider()

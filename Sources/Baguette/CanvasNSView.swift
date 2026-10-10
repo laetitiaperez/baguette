@@ -23,7 +23,7 @@ final class CanvasNSView: NSView {
     private var imageOrigin: CGPoint = .zero
 
     private let contentLayer = CALayer()
-    private let checkerLayer = CALayer()
+    private let checkerLayer = CheckerboardLayer()
     private let imageLayer = CALayer()
     private let tintLayer = CALayer()
     private let tintMaskLayer = CALayer()
@@ -101,6 +101,8 @@ final class CanvasNSView: NSView {
         antsLayer.lineWidth = 1
         antsLayer.lineDashPattern = [4, 4]
 
+        checkerLayer.anchorPoint = .zero
+        checkerLayer.contentsScale = NSScreen.main?.backingScaleFactor ?? 2
         for sublayer in [checkerLayer, imageLayer, tintLayer, outlineLayer, antsLayer] {
             sublayer.anchorPoint = .zero
             contentLayer.addSublayer(sublayer)
@@ -111,8 +113,8 @@ final class CanvasNSView: NSView {
     /// Couleurs système résolues pour l'apparence courante (clair / sombre).
     private func updateColors() {
         effectiveAppearance.performAsCurrentDrawingAppearance {
-            checkerLayer.backgroundColor = Self.checkerPattern(
-                light: .controlBackgroundColor, dark: .unemphasizedSelectedContentBackgroundColor)
+            checkerLayer.lightColor = NSColor.controlBackgroundColor.cgColor
+            checkerLayer.darkColor = NSColor.unemphasizedSelectedContentBackgroundColor.cgColor
             tintLayer.backgroundColor = NSColor.controlAccentColor.withAlphaComponent(0.25).cgColor
         }
     }
@@ -125,29 +127,9 @@ final class CanvasNSView: NSView {
         CATransaction.commit()
     }
 
-    /// Motif de damier : cases de 8 pt.
-    private static func checkerPattern(light: NSColor, dark: NSColor) -> CGColor {
-        let side: CGFloat = 8
-        let tile = NSImage(size: NSSize(width: 2 * side, height: 2 * side))
-        tile.addRepresentation(checkerTile(side: side, scale: 2, light: light.cgColor, dark: dark.cgColor))
-        return NSColor(patternImage: tile).cgColor
-    }
-
-    private static func checkerTile(side: CGFloat, scale: CGFloat, light: CGColor, dark: CGColor) -> NSBitmapImageRep {
-        let px = Int(2 * side * scale)
-        let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: px, pixelsHigh: px,
-                                   bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true, isPlanar: false,
-                                   colorSpaceName: .deviceRGB, bytesPerRow: 0, bitsPerPixel: 0)!
-        rep.size = NSSize(width: 2 * side, height: 2 * side)
-        if let ctx = NSGraphicsContext(bitmapImageRep: rep)?.cgContext {
-            let s = side * scale
-            ctx.setFillColor(light)
-            ctx.fill(CGRect(x: 0, y: 0, width: 2 * s, height: 2 * s))
-            ctx.setFillColor(dark)
-            ctx.fill(CGRect(x: 0, y: 0, width: s, height: s))
-            ctx.fill(CGRect(x: s, y: s, width: s, height: s))
-        }
-        return rep
+    override func viewDidChangeBackingProperties() {
+        super.viewDidChangeBackingProperties()
+        checkerLayer.contentsScale = window?.backingScaleFactor ?? 2
     }
 
     private func updateSelectionLayers() {
@@ -190,9 +172,10 @@ final class CanvasNSView: NSView {
         guard let image else { return }
         let rect = CGRect(origin: imageOrigin,
                           size: CGSize(width: CGFloat(image.width) * zoom, height: CGFloat(image.height) * zoom))
-        for sublayer in [checkerLayer, imageLayer, tintLayer, outlineLayer, antsLayer] {
+        for sublayer in [imageLayer, tintLayer, outlineLayer, antsLayer] {
             sublayer.frame = rect
         }
+        layoutCheckerboard()
         tintMaskLayer.frame = tintLayer.bounds
         let filter: CALayerContentsFilter = zoom > 1 ? .nearest : .linear
         imageLayer.magnificationFilter = filter
@@ -202,6 +185,22 @@ final class CanvasNSView: NSView {
         let scaled = outlinePath.flatMap { $0.copy(using: &scale) }
         outlineLayer.path = scaled
         antsLayer.path = scaled
+    }
+
+    /// Le damier ne couvre que la partie visible de l'image.
+    private func layoutCheckerboard() {
+        guard let image else { return }
+        let rect = CGRect(origin: imageOrigin,
+                          size: CGSize(width: CGFloat(image.width) * zoom, height: CGFloat(image.height) * zoom))
+        let visible = rect.intersection(visibleRect).integral.intersection(rect)
+        CATransaction.begin()
+        CATransaction.setDisableActions(true)
+        checkerLayer.isHidden = visible.isEmpty
+        if !visible.isEmpty {
+            checkerLayer.frame = visible
+            checkerLayer.phase = CGPoint(x: rect.minX - visible.minX, y: rect.minY - visible.minY)
+        }
+        CATransaction.commit()
     }
 
     // MARK: - Mise en page et zoom
@@ -225,18 +224,26 @@ final class CanvasNSView: NSView {
         layoutLayers()
     }
 
-    /// Le document suit la taille de la zone visible (fenêtre redimensionnée, barres affichées…).
+    /// Le document suit la taille de la zone visible (fenêtre redimensionnée, barres affichées…),
+    /// et le damier suit le défilement.
     override func viewDidMoveToSuperview() {
         super.viewDidMoveToSuperview()
-        NotificationCenter.default.removeObserver(self, name: NSView.frameDidChangeNotification, object: nil)
+        NotificationCenter.default.removeObserver(self)
         guard let clip = superview as? NSClipView else { return }
         clip.postsFrameChangedNotifications = true
+        clip.postsBoundsChangedNotifications = true
         NotificationCenter.default.addObserver(self, selector: #selector(visibleAreaDidResize),
                                                name: NSView.frameDidChangeNotification, object: clip)
+        NotificationCenter.default.addObserver(self, selector: #selector(visibleAreaDidScroll),
+                                               name: NSView.boundsDidChangeNotification, object: clip)
     }
 
     @objc private func visibleAreaDidResize(_ notification: Notification) {
         relayout()
+    }
+
+    @objc private func visibleAreaDidScroll(_ notification: Notification) {
+        layoutCheckerboard()
     }
 
     /// Zoom multiplicatif centré sur le milieu de la zone visible.
