@@ -12,11 +12,8 @@ rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources/fr.lproj"
 cp "$BIN_DIR/Baguette" "$APP/Contents/MacOS/Baguette"
 
-ICON_ENTRY=""
-if [ -f Sources/Baguette/Resources/AppIcon.icns ]; then
-    cp Sources/Baguette/Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
-    ICON_ENTRY="<key>CFBundleIconFile</key><string>AppIcon</string>"
-fi
+# Icône générée par scripts/make-icon.swift.
+cp Sources/Baguette/Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
@@ -36,7 +33,7 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>LSApplicationCategoryType</key><string>public.app-category.graphics-design</string>
     <key>NSHighResolutionCapable</key><true/>
     <key>NSPrincipalClass</key><string>NSApplication</string>
-    ${ICON_ENTRY}
+    <key>CFBundleIconFile</key><string>AppIcon</string>
     <key>CFBundleDocumentTypes</key>
     <array>
         <dict>
@@ -51,6 +48,9 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 PLIST
 
 # Signature ad hoc pour que macOS lance l'app sans avertissement de binaire modifié.
-codesign --force --sign - "$APP" >/dev/null 2>&1 || true
+if ! CODESIGN_LOG="$(codesign --force --sign - "$APP" 2>&1)"; then
+    echo "⚠︎ Signature ad hoc impossible ; l'app reste utilisable mais macOS peut avertir au lancement :" >&2
+    echo "$CODESIGN_LOG" >&2
+fi
 
 echo "→ $APP"

@@ -10,7 +10,8 @@ let package = Package(
     ],
     targets: [
         .target(name: "WandCore"),
-        .executableTarget(name: "Baguette", dependencies: ["WandCore"]),
+        // L'icône est copiée dans Baguette.app par scripts/bundle.sh, pas embarquée par SwiftPM.
+        .executableTarget(name: "Baguette", dependencies: ["WandCore"], exclude: ["Resources"]),
         .testTarget(
             name: "WandCoreTests",
             dependencies: ["WandCore"],
