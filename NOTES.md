@@ -30,6 +30,7 @@ Une petite app macOS en Swift qui ne fait qu'une chose : la « baguette magique 
 - **Lecture d'images** : `ImageFile.load` applique l'orientation EXIF (sans réduire), convertit en sRGB 8 bits, dé-prémultiplie ; seule la première image d'un fichier multi-images est chargée. `cgImage` produit un CGImage sRGB à alpha droit.
 - **Usage** : la zone sélectionnée est **effacée** (fond transparent), puis l'image est **exportée en PNG**.
   Pas de presse-papiers ni de remplissage pour l'instant.
+- **Annulation** : `Editor` enregistre un instantané (image, sélection, isDirty) par action utilisateur ; annuler/rétablir restaurent aussi `isDirty`. Un clic hors image ou « Désélectionner » sans sélection n'enregistre rien. `Editor` ouvre/ferme lui-même le groupe d'annulation.
 - **Sélection (option C)** : clic = nouvelle sélection ; ⇧+clic = ajouter ; ⌥+clic = soustraire ;
   Inverser la sélection ; tolérance (0–255) ; case « contigu » ; anticrénelage on/off ;
   contour progressif (rayon en px). Supprimer efface la sélection.
