@@ -48,6 +48,7 @@ struct ContentView: View {
         .toolbar(model.hasImage ? .visible : .hidden, for: .windowToolbar)
         .navigationTitle(model.fileURL?.lastPathComponent ?? "Baguette")
         .onChange(of: undoManager.map(ObjectIdentifier.init), initial: true) {
+            undoManager?.levelsOfUndo = 50  // borne la mémoire : chaque pas garde image et masques entiers
             model.editor.undoManager = undoManager
         }
         .onChange(of: tolerance, initial: true) { model.editor.tolerance = min(max(tolerance, 0), 255) }

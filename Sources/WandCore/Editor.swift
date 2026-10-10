@@ -38,6 +38,7 @@ public final class Editor {
                                    contiguous: contiguous, antiAlias: antiAlias)
         if featherRadius > 0 { new = MaskOps.feather(new, radius: featherRadius) }
         let combined = MaskOps.combine(selection, new, mode: mode)
+        guard combined != selection else { return }
         perform(actionName: "Sélection") { $0.selection = combined }
     }
 

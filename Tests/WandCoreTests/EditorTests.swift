@@ -93,6 +93,20 @@ private func stripes() -> RGBAImage {
         #expect(e.selection != nil)
     }
 
+    @Test func noOpClickRegistersNoUndo() {
+        let (e, um) = makeEditor(stripes())
+        // ⌥-clic sans sélection : le résultat reste « rien de sélectionné ».
+        e.click(x: 0, y: 0, mode: .subtract)
+        #expect(e.selection == nil)
+        #expect(!um.canUndo)
+        // Même clic répété : la sélection ne change pas, un seul pas d'annulation.
+        e.click(x: 0, y: 0, mode: .replace)
+        e.click(x: 0, y: 0, mode: .replace)
+        um.undo()
+        #expect(e.selection == nil)
+        #expect(!um.canUndo)
+    }
+
     @Test func clickOutsideIsNoOp() {
         let (e, um) = makeEditor(stripes())
         e.click(x: 99, y: 0, mode: .replace)
