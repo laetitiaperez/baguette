@@ -2,7 +2,7 @@
 
 ## Objectif
 Une petite app macOS en Swift qui ne fait qu'une chose : la « baguette magique » de Photoshop
-(sélectionner une zone de couleur proche en cliquant, puis l'effacer / la copier / l'exporter).
+(sélectionner une zone de couleur proche en cliquant, puis l'effacer / l'exporter).
 
 ## Dépôt
 https://github.com/laetitiaperez/baguette
