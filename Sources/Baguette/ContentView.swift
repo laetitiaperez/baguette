@@ -6,6 +6,12 @@ struct ContentView: View {
     @Bindable var model: AppModel
     @ViewState private var isDropTargeted = false
 
+    // Réglages mémorisés, recopiés dans l'éditeur.
+    @AppStorage("tolerance") private var tolerance = 32
+    @AppStorage("contiguous") private var contiguous = true
+    @AppStorage("antiAlias") private var antiAlias = true
+    @AppStorage("featherRadius") private var featherRadius = 0.0
+
     var body: some View {
         ZStack {
             if model.editor.image != nil {
@@ -14,7 +20,19 @@ struct ContentView: View {
                 EmptyState(open: model.showOpenPanel)
             }
         }
-        .frame(minWidth: 520, minHeight: 380)
+        .toolbar {
+            if model.hasImage {
+                TopBar(tolerance: $tolerance, contiguous: $contiguous,
+                       antiAlias: $antiAlias, featherRadius: $featherRadius)
+            }
+        }
+        .toolbar(model.hasImage ? .visible : .hidden, for: .windowToolbar)
+        .navigationTitle(model.fileURL?.lastPathComponent ?? "Baguette")
+        .onChange(of: tolerance, initial: true) { model.editor.tolerance = min(max(tolerance, 0), 255) }
+        .onChange(of: contiguous, initial: true) { model.editor.contiguous = contiguous }
+        .onChange(of: antiAlias, initial: true) { model.editor.antiAlias = antiAlias }
+        .onChange(of: featherRadius, initial: true) { model.editor.featherRadius = min(max(featherRadius, 0), 50) }
+        .frame(minWidth: 620, minHeight: 400)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(nsColor: .windowBackgroundColor))
         .overlay { if isDropTargeted { DropHighlight() } }

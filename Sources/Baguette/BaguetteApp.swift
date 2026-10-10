@@ -16,8 +16,7 @@ struct BaguetteApp: App {
             ContentView(model: model)
                 .onAppear { appDelegate.model = model }
         }
-        .windowStyle(.hiddenTitleBar)
-        .windowToolbarStyle(.unified(showsTitle: false))
+        .windowToolbarStyle(.unified(showsTitle: true))
         .defaultSize(width: 960, height: 680)
         .commands { BaguetteCommands(model: model) }
     }
