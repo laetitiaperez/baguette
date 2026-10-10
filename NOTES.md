@@ -4,6 +4,9 @@
 Une petite app macOS en Swift qui ne fait qu'une chose : la « baguette magique » de Photoshop
 (sélectionner une zone de couleur proche en cliquant, puis l'effacer / la copier / l'exporter).
 
+## Dépôt
+https://github.com/laetitiaperez/baguette
+
 ## Source réutilisable : storytold/photocraft (10/10/2026)
 - Dépôt : https://github.com/storytold/photocraft — « clean-room reimplementation of Adobe Photoshop in pure Rust »
 - Licence : double **MIT / Apache-2.0** → réutilisation et portage autorisés, à condition de garder
