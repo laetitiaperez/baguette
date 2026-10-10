@@ -118,7 +118,8 @@ struct BaguetteCommands: Commands {
             Button("Ouvrir…") { model.showOpenPanel() }
                 .keyboardShortcut("o")
         }
-        CommandGroup(replacing: .saveItem) {
+        // Après Ouvrir… : le groupe `.saveItem` contient aussi Fermer ⌘W, qu'il faut garder.
+        CommandGroup(after: .newItem) {
             Button("Exporter…") { model.showExportPanel() }
                 .keyboardShortcut("e", modifiers: [.command, .shift])
                 .disabled(!model.hasImage)

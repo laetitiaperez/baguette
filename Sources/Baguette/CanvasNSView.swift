@@ -3,8 +3,8 @@ import QuartzCore
 import WandCore
 
 /// Vue de document du canevas : damier, image, teinte et contour de sélection (calques Core Animation),
-/// clics de baguette, glisser de l'image vers l'extérieur (⌘ + glisser), curseur et zoom. Elle vit dans un `NSScrollView` qui fait défiler l'image
-/// lorsqu'elle dépasse la fenêtre.
+/// clics de baguette, glisser de l'image vers l'extérieur (⌘ + glisser), curseur et zoom. Elle vit
+/// dans un `NSScrollView` qui fait défiler l'image lorsqu'elle dépasse la fenêtre.
 @MainActor
 final class CanvasNSView: NSView, NSDraggingSource {
     /// Clic sur un pixel de l'image, avec le mode déduit des touches ⇧ / ⌥.
