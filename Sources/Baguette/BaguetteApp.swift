@@ -60,8 +60,9 @@ struct BaguetteCommands: Commands {
                 .keyboardShortcut("o")
         }
         CommandGroup(replacing: .pasteboard) {
-            Button("Effacer") { model.editor.eraseSelection() }
-                .keyboardShortcut(.delete, modifiers: [])
+            // Pas d'équivalent clavier : ⌫ est géré par le canevas (voir CanvasNSView.keyDown),
+            // pour ne jamais effacer l'image pendant la saisie dans un champ de texte ou un panneau.
+            Button("Effacer (⌫)") { model.editor.eraseSelection() }
                 .disabled(!model.hasSelection)
             Button("Inverser") { model.editor.invertSelection() }
                 .keyboardShortcut("i", modifiers: [.command, .shift])

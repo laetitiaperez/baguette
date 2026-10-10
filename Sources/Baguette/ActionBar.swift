@@ -10,7 +10,8 @@ struct ActionBar: View {
             Button { editor.eraseSelection() } label: {
                 Label("Effacer", systemImage: "eraser")
             }
-            .keyboardShortcut(.delete, modifiers: [])
+            // ⌫ est traité par le canevas (premier répondeur), jamais comme raccourci :
+            // il ne doit pas effacer l'image pendant la saisie dans un champ de texte.
             .help("Effacer la sélection (⌫)")
 
             Divider()

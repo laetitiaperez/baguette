@@ -9,6 +9,8 @@ import WandCore
 final class CanvasNSView: NSView {
     /// Clic sur un pixel de l'image, avec le mode déduit des touches ⇧ / ⌥.
     var onClick: ((_ x: Int, _ y: Int, _ mode: SelectionMode) -> Void)?
+    /// ⌫ ou ⌦ pressée alors que le canevas est premier répondeur.
+    var onErase: (() -> Void)?
 
     private static let margin: CGFloat = 20
     private static let zoomRange: ClosedRange<CGFloat> = 0.01...32
@@ -63,6 +65,7 @@ final class CanvasNSView: NSView {
         if !Self.sameBuffer(newImage?.pixels, image?.pixels) {
             image = newImage
             imageLayer.contents = newImage.map { ImageFile.cgImage($0) }
+            takeFocus()
             relayout()
         }
         if !Self.sameBuffer(newSelection?.values, selection?.values) {
@@ -285,6 +288,33 @@ final class CanvasNSView: NSView {
     }
 
     // MARK: - Clic
+
+    // MARK: - Clavier
+
+    /// Le canevas devient premier répondeur dès qu'une image est affichée (pas seulement après un clic),
+    /// sauf si un champ de texte est en cours d'édition dans la fenêtre.
+    private func takeFocus() {
+        guard let window, !(window.firstResponder is NSText) else { return }
+        window.makeFirstResponder(self)
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        // La fenêtre finit d'installer sa hiérarchie avant que l'on prenne le focus.
+        DispatchQueue.main.async { [weak self] in self?.takeFocus() }
+    }
+
+    /// ⌫ (Delete) et ⌦ (Forward Delete), sans ⌘/⌃/⌥ : effacer la sélection. Ces touches n'arrivent ici
+    /// que si le canevas a le focus ; un champ de texte ou un panneau d'ouverture/enregistrement les garde.
+    override func keyDown(with event: NSEvent) {
+        let deleteKeys: Set<UInt16> = [51, 117]
+        let blocking: NSEvent.ModifierFlags = [.command, .control, .option]
+        if deleteKeys.contains(event.keyCode), event.modifierFlags.intersection(blocking).isEmpty {
+            onErase?()
+        } else {
+            super.keyDown(with: event)
+        }
+    }
 
     override func mouseDown(with event: NSEvent) {
         window?.makeFirstResponder(self)

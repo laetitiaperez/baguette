@@ -18,6 +18,7 @@ struct CanvasView: NSViewRepresentable {
         let canvas = CanvasNSView(frame: .zero)
         let editor = model.editor
         canvas.onClick = { [weak editor] x, y, mode in editor?.click(x: x, y: y, mode: mode) }
+        canvas.onErase = { [weak editor] in editor?.eraseSelection() }
         scrollView.documentView = canvas
         model.canvas = canvas
         return scrollView
