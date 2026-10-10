@@ -8,12 +8,12 @@ public enum MagicWand {
     /// - `antiAlias` : accepté, ignoré pour l'instant (ajouté en Tâche 3).
     public static func select(_ image: RGBAImage, x: Int, y: Int, tolerance: Int, contiguous: Bool, antiAlias: Bool) -> Mask {
         let w = image.width, h = image.height
-        var mask = Mask(width: w, height: h)
-        guard x >= 0, x < w, y >= 0, y < h else { return mask }
+        guard x >= 0, x < w, y >= 0, y < h else { return Mask(width: w, height: h) }
         let tol = Int32(min(max(tolerance, 0), 255))
 
         var marks = [UInt8](repeating: 0, count: w * h)
         image.pixels.withUnsafeBufferPointer { px in
+            // Le tampon [UInt8] est aligné sur 16 octets en pratique (≥ 4) et n'est lu que via ce mot, sans écriture : pas d'alias gênant.
             let words = UnsafeRawPointer(px.baseAddress!).assumingMemoryBound(to: UInt32.self)
             marks.withUnsafeMutableBufferPointer { marksBuffer in
                 let marks = marksBuffer.baseAddress!
@@ -35,36 +35,38 @@ public enum MagicWand {
                 if contiguous {
                     // Remplissage par segments : on remplit une plage, puis on cherche des germes au-dessus et en dessous.
                     var stack: [(Int, Int)] = [(x, y)]
+                    // Cherche, sur la rangée `ny`, les débuts de plages similaires entre `l` et `r`.
+                    func scanRow(_ ny: Int, _ l: Int, _ r: Int) {
+                        let nrow = ny * w
+                        var inRun = false
+                        var nx = l
+                        while nx <= r {
+                            let ok = marks[nrow + nx] == 0 && (words[nrow + nx] == targetWord || similar(nrow + nx))
+                            if ok && !inRun { stack.append((nx, ny)) }
+                            inRun = ok
+                            nx += 1
+                        }
+                    }
                     while let (sx, sy) = stack.popLast() {
                         let row = sy * w
                         if marks[row + sx] != 0 { continue }
                         var l = sx, r = sx
-                        while l > 0 && marks[row + l - 1] == 0 && similar(row + l - 1) { l -= 1 }
-                        while r + 1 < w && marks[row + r + 1] == 0 && similar(row + r + 1) { r += 1 }
+                        while l > 0 && marks[row + l - 1] == 0 && (words[row + l - 1] == targetWord || similar(row + l - 1)) { l -= 1 }
+                        while r + 1 < w && marks[row + r + 1] == 0 && (words[row + r + 1] == targetWord || similar(row + r + 1)) { r += 1 }
                         (marks + row + l).update(repeating: 255, count: r - l + 1)
-                        for ny in [sy - 1, sy + 1] where ny >= 0 && ny < h {
-                            let nrow = ny * w
-                            var inRun = false
-                            var nx = l
-                            while nx <= r {
-                                let ok = marks[nrow + nx] == 0 && similar(nrow + nx)
-                                if ok && !inRun { stack.append((nx, ny)) }
-                                inRun = ok
-                                nx += 1
-                            }
-                        }
+                        if sy > 0 { scanRow(sy - 1, l, r) }
+                        if sy + 1 < h { scanRow(sy + 1, l, r) }
                     }
                 } else {
                     var i = 0
                     let n = w * h
                     while i < n {
-                        if similar(i) { marks[i] = 255 }
+                        if words[i] == targetWord || similar(i) { marks[i] = 255 }
                         i += 1
                     }
                 }
             }
         }
-        mask.values = marks
-        return mask
+        return Mask(width: w, height: h, values: marks)
     }
 }

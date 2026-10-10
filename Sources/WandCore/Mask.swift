@@ -10,6 +10,13 @@ public struct Mask: Equatable, Sendable {
         self.values = [UInt8](repeating: value, count: width * height)
     }
 
+    public init(width: Int, height: Int, values: [UInt8]) {
+        precondition(values.count == width * height, "Mask: values.count doit valoir width * height")
+        self.width = width
+        self.height = height
+        self.values = values
+    }
+
     public subscript(x: Int, y: Int) -> UInt8 {
         get { values[y * width + x] }
         set { values[y * width + x] = newValue }
