@@ -124,7 +124,7 @@ struct BaguetteCommands: Commands {
                 .keyboardShortcut("e", modifiers: [.command, .shift])
                 .disabled(!model.hasImage)
         }
-        CommandGroup(replacing: .pasteboard) {
+        CommandGroup(after: .pasteboard) {
             // Pas d'équivalent clavier : ⌫ est géré par le canevas (voir CanvasNSView.keyDown),
             // pour ne jamais effacer l'image pendant la saisie dans un champ de texte ou un panneau.
             Button("Effacer (⌫)") { model.editor.eraseSelection() }
@@ -137,8 +137,9 @@ struct BaguetteCommands: Commands {
                 .disabled(!model.hasSelection)
         }
         CommandGroup(before: .toolbar) {
+            // ⌘= zoome ; ⌘+ (⌘⇧=) est géré par le canevas (CanvasNSView.performKeyEquivalent).
             Button("Zoom avant") { model.zoomIn() }
-                .keyboardShortcut("+")
+                .keyboardShortcut("=")
                 .disabled(!model.hasImage)
             Button("Zoom arrière") { model.zoomOut() }
                 .keyboardShortcut("-")

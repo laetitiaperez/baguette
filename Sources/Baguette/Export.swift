@@ -10,6 +10,21 @@ enum Exporter {
         return (stem.isEmpty ? "image" : stem) + "-baguette.png"
     }
 
+    /// Si un fichier existe déjà à cet endroit, propose « <nom> 2.png », « <nom> 3.png »…
+    static func uniqueURL(for url: URL) -> URL {
+        let fm = FileManager.default
+        guard fm.fileExists(atPath: url.path) else { return url }
+        let dir = url.deletingLastPathComponent()
+        let stem = url.deletingPathExtension().lastPathComponent
+        let ext = url.pathExtension
+        var n = 2
+        while true {
+            let candidate = dir.appendingPathComponent("\(stem) \(n)").appendingPathExtension(ext)
+            if !fm.fileExists(atPath: candidate.path) { return candidate }
+            n += 1
+        }
+    }
+
     /// Écrit l'image en PNG (sRGB, alpha droit) ; remplace un fichier existant.
     static func write(_ image: RGBAImage, to url: URL) throws {
         try ImageFile.pngData(image).write(to: url, options: .atomic)
@@ -57,7 +72,7 @@ final class PNGFilePromise: NSObject, NSFilePromiseProviderDelegate, Sendable {
     func filePromiseProvider(_ provider: NSFilePromiseProvider, writePromiseTo url: URL,
                              completionHandler: @escaping ((any Error)?) -> Void) {
         do {
-            try Exporter.write(image, to: url)
+            try Exporter.write(image, to: Exporter.uniqueURL(for: url))
             completionHandler(nil)
             Task { @MainActor in onWritten() }
         } catch {

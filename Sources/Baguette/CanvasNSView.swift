@@ -323,6 +323,18 @@ final class CanvasNSView: NSView, NSDraggingSource {
         }
     }
 
+    /// ⌘+ (⌘⇧=) : zoom avant, en plus de ⌘= porté par le menu.
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        let chars = event.charactersIgnoringModifiers
+        if flags.contains(.command), !flags.contains(.control), !flags.contains(.option),
+           chars == "+" || (flags.contains(.shift) && chars == "=") {
+            zoom(by: 1.25)
+            return true
+        }
+        return super.performKeyEquivalent(with: event)
+    }
+
     override func mouseDown(with event: NSEvent) {
         window?.makeFirstResponder(self)
         let point = convert(event.locationInWindow, from: nil)

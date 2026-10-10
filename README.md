@@ -33,7 +33,7 @@ Dépôt : <https://github.com/laetitiaperez/baguette>
 | Inverser la sélection | ⌘⇧I |
 | Désélectionner | ⌘D |
 | Annuler / Rétablir | ⌘Z / ⌘⇧Z |
-| Zoom avant / arrière | ⌘+ / ⌘− (ou pincement sur le trackpad) |
+| Zoom avant / arrière | ⌘= ou ⌘+ / ⌘− (ou pincement sur le trackpad) |
 | Ajuster à la fenêtre | ⌘0 |
 | Glisser l'image hors de la fenêtre | ⌘ + glisser |
 
