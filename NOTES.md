@@ -27,4 +27,6 @@ Une petite app macOS en Swift qui ne fait qu'une chose : la « baguette magique 
 - Icône : `assets/icons/wand.svg`, `wand-sparkles.svg` (même licence).
 
 ## Décisions
-- (à compléter au fil des échanges)
+- **Usage** : la zone sélectionnée est **effacée** (fond transparent), puis l'image est **exportée en PNG**.
+  Pas de presse-papiers ni de remplissage pour l'instant.
+- **Langage** : algorithme porté de Rust vers Swift (pas de FFI), avec attribution MIT/Apache.
