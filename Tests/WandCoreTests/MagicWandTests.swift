@@ -67,4 +67,26 @@ private func gray(_ v: UInt8) -> (UInt8, UInt8, UInt8, UInt8) { (v, v, v, 255) }
         #expect(mask.values.allSatisfy { $0 == 255 })
         #expect(d < .seconds(5))
     }
+
+    @Test func antialiasInteriorUnchanged() {
+        let full = Mask(width: 5, height: 5, value: 255)
+        let empty = Mask(width: 5, height: 5, value: 0)
+        #expect(MagicWand.antialias(full) == full)
+        #expect(MagicWand.antialias(empty) == empty)
+    }
+
+    @Test func antialiasEdgeValues() {
+        let m = Mask(width: 3, height: 1, values: [255, 0, 0])
+        #expect(MagicWand.antialias(m).values == [241, 14, 0])
+    }
+
+    @Test func selectWithAntialias() {
+        let b: (UInt8, UInt8, UInt8, UInt8) = (0, 0, 0, 255), wh: (UInt8, UInt8, UInt8, UInt8) = (255, 255, 255, 255)
+        var img = RGBAImage(width: 5, height: 1, fill: b)
+        img.setPixel(x: 2, y: 0, wh)
+        let plain = MagicWand.select(img, x: 0, y: 0, tolerance: 0, contiguous: true, antiAlias: false)
+        let smooth = MagicWand.select(img, x: 0, y: 0, tolerance: 0, contiguous: true, antiAlias: true)
+        #expect(smooth == MagicWand.antialias(plain))
+        #expect(smooth != plain)
+    }
 }

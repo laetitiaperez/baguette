@@ -5,7 +5,7 @@ public enum MagicWand {
     /// Sélectionne les pixels similaires au pixel `(x, y)`.
     /// - `tolerance` : 0...255 (borné), écart maximal admis sur chacun des 4 canaux.
     /// - `contiguous` : vrai = zone connectée en 4-voisinage ; faux = toute l'image.
-    /// - `antiAlias` : accepté, ignoré pour l'instant (ajouté en Tâche 3).
+    /// - `antiAlias` : vrai = adoucit les bords du résultat avec `antialias(_:)`.
     public static func select(_ image: RGBAImage, x: Int, y: Int, tolerance: Int, contiguous: Bool, antiAlias: Bool) -> Mask {
         let w = image.width, h = image.height
         guard x >= 0, x < w, y >= 0, y < h else { return Mask(width: w, height: h) }
@@ -67,6 +67,37 @@ public enum MagicWand {
                 }
             }
         }
-        return Mask(width: w, height: h, values: marks)
+        let result = Mask(width: w, height: h, values: marks)
+        return antiAlias ? antialias(result) : result
+    }
+
+    /// Adoucit les bords : un pixel dont un voisin 3×3 diffère prend une valeur issue de la moyenne 3×3
+    /// (sélectionné, > 127 : 0,5 + 0,5·moy ; sinon 0,5·moy). Hors image, un voisin vaut le pixel lui-même.
+    public static func antialias(_ mask: Mask) -> Mask {
+        let w = mask.width, h = mask.height
+        let src = mask.values
+        var out = src
+        for y in 0..<h {
+            for x in 0..<w {
+                let i = y * w + x
+                let center = src[i]
+                var sum = 0
+                var edge = false
+                for dy in -1...1 {
+                    for dx in -1...1 {
+                        let xx = x + dx, yy = y + dy
+                        let v = (xx < 0 || yy < 0 || xx >= w || yy >= h) ? center : src[yy * w + xx]
+                        if v != center { edge = true }
+                        sum += Int(v)
+                    }
+                }
+                if edge {
+                    let avg = Double(sum) / (9 * 255)
+                    let value = center > 127 ? 0.5 + 0.5 * avg : 0.5 * avg
+                    out[i] = UInt8((value * 255).rounded())
+                }
+            }
+        }
+        return Mask(width: w, height: h, values: out)
     }
 }
