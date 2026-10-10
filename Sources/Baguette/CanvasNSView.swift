@@ -3,14 +3,16 @@ import QuartzCore
 import WandCore
 
 /// Vue de document du canevas : damier, image, teinte et contour de sélection (calques Core Animation),
-/// clics de baguette, curseur et zoom. Elle vit dans un `NSScrollView` qui fait défiler l'image
+/// clics de baguette, glisser de l'image vers l'extérieur (⌘ + glisser), curseur et zoom. Elle vit dans un `NSScrollView` qui fait défiler l'image
 /// lorsqu'elle dépasse la fenêtre.
 @MainActor
-final class CanvasNSView: NSView {
+final class CanvasNSView: NSView, NSDraggingSource {
     /// Clic sur un pixel de l'image, avec le mode déduit des touches ⇧ / ⌥.
     var onClick: ((_ x: Int, _ y: Int, _ mode: SelectionMode) -> Void)?
     /// ⌫ ou ⌦ pressée alors que le canevas est premier répondeur.
     var onErase: (() -> Void)?
+    /// Promesse de fichier PNG pour glisser l'image hors du canevas.
+    var makeDragPromise: (() -> PNGFilePromise?)?
 
     private static let margin: CGFloat = 20
     private static let zoomRange: ClosedRange<CGFloat> = 0.01...32
@@ -33,6 +35,11 @@ final class CanvasNSView: NSView {
     private let antsLayer = CAShapeLayer()
 
     private var flagsMonitor: Any?
+    /// Point de départ d'un ⌘ + glisser, tant que le glisser n'a pas commencé.
+    private var dragOrigin: CGPoint?
+    /// Délégué de la dernière promesse de fichier (le fournisseur ne le retient pas) ; gardé jusqu'au
+    /// glisser suivant, car la destination peut demander le fichier après la fin de la session.
+    private var dragPromise: PNGFilePromise?
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -319,8 +326,49 @@ final class CanvasNSView: NSView {
     override func mouseDown(with event: NSEvent) {
         window?.makeFirstResponder(self)
         let point = convert(event.locationInWindow, from: nil)
+        // ⌘ enfoncée : pas de baguette, l'appui prépare un glisser de l'image vers l'extérieur.
+        if event.modifierFlags.contains(.command) {
+            dragOrigin = geometry.pixel(at: point) == nil ? nil : point
+            return
+        }
         guard let pixel = geometry.pixel(at: point) else { return }
         onClick?(pixel.x, pixel.y, Self.mode(for: event.modifierFlags))
+    }
+
+    override func mouseDragged(with event: NSEvent) {
+        guard let origin = dragOrigin else { return }
+        let point = convert(event.locationInWindow, from: nil)
+        guard hypot(point.x - origin.x, point.y - origin.y) >= 4 else { return }
+        dragOrigin = nil
+        beginImageDrag(at: point, event: event)
+    }
+
+    override func mouseUp(with event: NSEvent) {
+        dragOrigin = nil
+    }
+
+    // MARK: - Glisser vers l'extérieur
+
+    /// Démarre une session de glisser : promesse de fichier `<nom>-baguette.png`, avec une vignette de l'image
+    /// (256 pt au plus) centrée sous le pointeur.
+    private func beginImageDrag(at point: CGPoint, event: NSEvent) {
+        guard let image, let promise = makeDragPromise?() else { return }
+        let cgImage = ImageFile.cgImage(image)
+        dragPromise = promise
+        let size = CGSize(width: cgImage.width, height: cgImage.height)
+        let scale = min(1, 256 / max(size.width, size.height), zoom)
+        let thumb = CGSize(width: max(1, size.width * scale), height: max(1, size.height * scale))
+        let item = NSDraggingItem(pasteboardWriter: promise.makeProvider())
+        item.setDraggingFrame(CGRect(x: point.x - thumb.width / 2, y: point.y - thumb.height / 2,
+                                     width: thumb.width, height: thumb.height),
+                              contents: NSImage(cgImage: cgImage, size: thumb))
+        let session = beginDraggingSession(with: [item], event: event, source: self)
+        session.animatesToStartingPositionsOnCancelOrFail = true
+    }
+
+    func draggingSession(_ session: NSDraggingSession,
+                         sourceOperationMaskFor context: NSDraggingContext) -> NSDragOperation {
+        context == .outsideApplication ? .copy : []
     }
 
     private static func mode(for flags: NSEvent.ModifierFlags) -> SelectionMode {
@@ -339,7 +387,12 @@ final class CanvasNSView: NSView {
     }
 
     override func cursorUpdate(with event: NSEvent) {
-        WandCursor.cursor(for: Self.mode(for: event.modifierFlags)).set()
+        Self.cursor(for: event.modifierFlags).set()
+    }
+
+    /// Main ouverte avec ⌘ (glisser l'image), sinon baguette avec son badge.
+    private static func cursor(for flags: NSEvent.ModifierFlags) -> NSCursor {
+        flags.contains(.command) ? .openHand : WandCursor.cursor(for: mode(for: flags))
     }
 
     override func viewWillMove(toWindow newWindow: NSWindow?) {
@@ -358,6 +411,6 @@ final class CanvasNSView: NSView {
         guard let window, window.isKeyWindow else { return }
         let location = convert(window.mouseLocationOutsideOfEventStream, from: nil)
         guard visibleRect.contains(location) else { return }
-        WandCursor.cursor(for: Self.mode(for: flags)).set()
+        Self.cursor(for: flags).set()
     }
 }

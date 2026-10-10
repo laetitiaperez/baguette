@@ -19,6 +19,7 @@ struct CanvasView: NSViewRepresentable {
         let editor = model.editor
         canvas.onClick = { [weak editor] x, y, mode in editor?.click(x: x, y: y, mode: mode) }
         canvas.onErase = { [weak editor] in editor?.eraseSelection() }
+        canvas.makeDragPromise = { [weak model] in model?.dragPromise() }
         scrollView.documentView = canvas
         model.canvas = canvas
         return scrollView
