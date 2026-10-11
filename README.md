@@ -20,6 +20,14 @@ Dépôt : <https://github.com/laetitiaperez/baguette>
 - Annuler / Rétablir pour chaque action ; confirmation avant de quitter ou d'ouvrir une autre image
   si le travail n'a pas été exporté.
 
+## Télécharger
+
+La dernière version est sur la page [Releases](https://github.com/laetitiaperez/baguette/releases) (`Baguette-<version>.zip`, Mac Apple silicon et Intel, macOS 14 ou plus).
+
+L'app n'est pas notarisée par Apple : au premier lancement, fais un clic droit sur `Baguette.app` → **Ouvrir**, puis confirme (ou Réglages Système → Confidentialité et sécurité → **Ouvrir quand même**).
+
+Pour publier une nouvelle version : pousser un tag `vX.Y.Z` (ou lancer le workflow « Release » depuis l'onglet Actions) ; la CI teste, assemble l'app universelle et crée la release.
+
 ## Raccourcis
 
 | Action | Raccourci |

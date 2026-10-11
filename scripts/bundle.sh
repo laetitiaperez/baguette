@@ -4,8 +4,19 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
-swift build -c release --product Baguette
-BIN_DIR="$(swift build -c release --show-bin-path)"
+# Variables facultatives (utilisées par la CI de release) :
+#   BAGUETTE_VERSION  version affichée (défaut 1.0)
+#   BAGUETTE_BUILD    numéro de build (défaut 1)
+#   UNIVERSAL=1       binaire universel arm64 + x86_64 (nécessite Xcode)
+VERSION="${BAGUETTE_VERSION:-1.0}"
+BUILD="${BAGUETTE_BUILD:-1}"
+BUILD_ARGS=(-c release)
+if [[ "${UNIVERSAL:-0}" == "1" ]]; then
+    BUILD_ARGS+=(--arch arm64 --arch x86_64)
+fi
+
+swift build "${BUILD_ARGS[@]}" --product Baguette
+BIN_DIR="$(swift build "${BUILD_ARGS[@]}" --show-bin-path)"
 
 APP="build/Baguette.app"
 rm -rf "$APP"
@@ -25,8 +36,8 @@ cat > "$APP/Contents/Info.plist" <<PLIST
     <key>CFBundleDisplayName</key><string>Baguette</string>
     <key>CFBundleExecutable</key><string>Baguette</string>
     <key>CFBundlePackageType</key><string>APPL</string>
-    <key>CFBundleShortVersionString</key><string>1.0</string>
-    <key>CFBundleVersion</key><string>1</string>
+    <key>CFBundleShortVersionString</key><string>${VERSION}</string>
+    <key>CFBundleVersion</key><string>${BUILD}</string>
     <key>CFBundleDevelopmentRegion</key><string>fr</string>
     <key>CFBundleLocalizations</key><array><string>fr</string></array>
     <key>LSMinimumSystemVersion</key><string>14.0</string>

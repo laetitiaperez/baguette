@@ -1,0 +1,57 @@
+name: Release
+
+# Publie Baguette.app (signature ad hoc, non notarisée) quand un tag vX.Y.Z est poussé,
+# ou à la main depuis l'onglet Actions.
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version à publier (ex. 1.0.0) ; le tag v<version> est créé"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Version
+        id: v
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            VERSION="${{ inputs.version }}"
+          else
+            VERSION="${GITHUB_REF_NAME#v}"
+          fi
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Tests
+        run: swift test
+
+      - name: Assemblage (universel arm64 + x86_64)
+        env:
+          BAGUETTE_VERSION: ${{ steps.v.outputs.version }}
+          BAGUETTE_BUILD: ${{ github.run_number }}
+          UNIVERSAL: "1"
+        run: |
+          ./scripts/bundle.sh
+          lipo -archs build/Baguette.app/Contents/MacOS/Baguette
+          codesign --verify --verbose build/Baguette.app
+
+      - name: Archive
+        run: ditto -c -k --keepParent build/Baguette.app "Baguette-${{ steps.v.outputs.version }}.zip"
+
+      - name: Publication
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${{ steps.v.outputs.tag }}" "Baguette-${{ steps.v.outputs.version }}.zip" \
+            --target "$GITHUB_SHA" \
+            --title "Baguette ${{ steps.v.outputs.version }}" \
+            --notes "Application non notarisée : au premier lancement, clic droit sur Baguette.app → Ouvrir (ou Réglages Système → Confidentialité et sécurité → Ouvrir quand même). Compatible macOS 14 et plus, Mac Apple silicon et Intel."
