@@ -65,3 +65,8 @@ https://github.com/laetitiaperez/baguette
 - Relu tâche par tâche, puis relecture finale de toute la branche (corrections appliquées : Couper/Copier/Coller conservés, ⌘= pour zoomer, pas d'écrasement au glisser-déposer, licence photocraft complète dans NOTICE, 50 annulations max).
 - **À vérifier à la main** (impossible pour les agents, sans accès à l'écran) : ⌘Z/⌘⇧Z depuis le menu, ⌫ après le popover/les alertes, pincement pour zoomer, dépôt d'un fichier sur le canevas, ⌘-glisser vers le Finder puis ouverture du PNG dans Aperçu, ⌘W/⌘Q avec modifications non exportées, ⌘A/⌘V dans le nom d'export, aspect du bouton Exporter.
 - **Plus tard** : contour progressif à 50 px lent (~2 s sur 24 Mpx), pas de limite de taille d'image au chargement, chargements concurrents, image légèrement floue à 100 % sur écran Retina.
+
+## Publication (11/10/2026)
+- Dépôt **public** : https://github.com/laetitiaperez/baguette — historique réécrit avant publication (adresse anonyme `…@users.noreply.github.com`), dépôt supprimé puis recréé pour ne laisser aucune trace des anciennes adresses.
+- CI GitHub Actions : `CI` (tests + assemblage à chaque push/PR) et `Release` (tag `vX.Y.Z` → app universelle signée ad hoc, non notarisée, zippée et publiée).
+- Première release : **v1.0.0** — https://github.com/laetitiaperez/baguette/releases/tag/v1.0.0
