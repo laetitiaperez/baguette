@@ -2,7 +2,10 @@
 
 ## Objectif
 Une petite app macOS en Swift qui ne fait qu'une chose : la « baguette magique » de Photoshop
-(sélectionner une zone de couleur proche en cliquant, puis l'effacer / la copier / l'exporter).
+(sélectionner une zone de couleur proche en cliquant, puis l'effacer / l'exporter).
+
+## Dépôt
+https://github.com/laetitiaperez/baguette
 
 ## Source réutilisable : storytold/photocraft (10/10/2026)
 - Dépôt : https://github.com/storytold/photocraft — « clean-room reimplementation of Adobe Photoshop in pure Rust »
@@ -27,14 +30,38 @@ Une petite app macOS en Swift qui ne fait qu'une chose : la « baguette magique 
 - Icône : `assets/icons/wand.svg`, `wand-sparkles.svg` (même licence).
 
 ## Décisions
+- **Géométrie du canevas** : `CanvasGeometry` (vue à origine en haut-gauche, en points) ; `fit` n'agrandit jamais au-delà de 100 % et renvoie zoom 1 / origine nulle si image ou vue de taille nulle.
+- **Lecture d'images** : `ImageFile.load` applique l'orientation EXIF (sans réduire), convertit en sRGB 8 bits, dé-prémultiplie ; seule la première image d'un fichier multi-images est chargée. `cgImage` produit un CGImage sRGB à alpha droit.
 - **Usage** : la zone sélectionnée est **effacée** (fond transparent), puis l'image est **exportée en PNG**.
   Pas de presse-papiers ni de remplissage pour l'instant.
+- **Annulation** : `Editor` enregistre un instantané (image, sélection, isDirty) par action utilisateur ; annuler/rétablir restaurent aussi `isDirty`. Un clic hors image ou « Désélectionner » sans sélection n'enregistre rien. `Editor` ouvre/ferme lui-même le groupe d'annulation.
 - **Sélection (option C)** : clic = nouvelle sélection ; ⇧+clic = ajouter ; ⌥+clic = soustraire ;
   Inverser la sélection ; tolérance (0–255) ; case « contigu » ; anticrénelage on/off ;
   contour progressif (rayon en px). Supprimer efface la sélection.
 - **Environnement** : pas d'Xcode installé, seulement les Command Line Tools (Swift 6.4, macOS 27).
+- **Tests** : avec les seules Command Line Tools, le plugin de macros Swift Testing n'est pas trouvé ; `Package.swift` passe `-plugin-path` (unsafeFlags) à la cible de test pour que `swift test` fonctionne.
 - **Approche 1 retenue** : Swift Package (`swift build` / `swift test`) + script qui assemble `Baguette.app`.
   Module `WandCore` (Swift pur, testé) + app `Baguette` (SwiftUI, canevas AppKit).
 - **Langage** : algorithme porté de Rust vers Swift (pas de FFI), avec attribution MIT/Apache.
 - **Interface et erreurs/tests validés** ; dépôt GitHub **privé**. Spec : `docs/superpowers/specs/2026-10-10-baguette-design.md`.
 - **Bouton Exporter** en haut à droite de la barre (demande du 10/10/2026), même action que ⌘⇧E.
+- **Contour progressif** : flou gaussien séparable (σ = rayon / 2, noyau de demi-largeur ⌈rayon⌉, bords répétés), intermédiaire en `Float`, arrondi final. **Effacer** : alpha × (255 − masque) / 255, arrondi ; RVB inchangé.
+- **Fenêtre unique** : scène `Window` (et non `WindowGroup`, qui ouvrait une nouvelle fenêtre par fichier ouvert depuis le Finder) ; pas d'onglets ; l'app se ferme avec sa fenêtre. Les fichiers ouverts depuis le Finder passent par `application(_:open:)`.
+- **Barre du haut** = barre d'outils unifiée de la fenêtre : le nom du fichier est le titre de la fenêtre (à gauche), Tolérance et ⚙︎ à droite (`.primaryAction`). `.hiddenTitleBar` abandonné : sans espace flexible (`ToolbarSpacer` exige macOS 26), les éléments restaient collés à gauche. Sans image, la barre d'outils est masquée (barre de titre « Baguette »).
+- **`@State` sans Xcode** : dans le SDK, `@State` est une macro dont le plugin manque aux Command Line Tools ; l'app utilise l'alias `ViewState` (= `SwiftUI.State`).
+- **Info.plist** : région de développement et localisation `fr` (menus système en français), rang `Alternate` pour les images, signature ad hoc par `bundle.sh`.
+- **Ouverture** : chargement hors du fil principal ; seules les URL de fichier sont acceptées ; la confirmation « Ignorer les modifications ? » est posée après le choix du fichier (panneau, dépôt ou Finder).
+- **Canevas** : calques Core Animation (image, teinte d'accent 25 % masquée par la sélection, contour noir + pointillés blancs animés) ; rendus recalculés seulement quand le tampon de pixels change ; damier limité à la partie visible de l'image ; pointillés non animés au-delà de 100 000 segments de contour ; zoom de 1 % à 3200 %, l'image suit la fenêtre tant qu'on n'a pas zoomé. Curseur : SF Symbol `wand.and.rays`, point chaud au centre des rayons.
+- **Touche ⌫** : jamais enregistrée comme raccourci de menu ou de bouton (elle volerait la touche aux champs de texte, y compris ceux des panneaux d'ouverture/enregistrement) ; ⌫ et ⌦ sont traitées par `CanvasNSView.keyDown`, qui devient premier répondeur dès qu'une image s'affiche. Le menu affiche « Effacer (⌫) » en indication.
+- **Menus** : Édition remplace Couper/Copier/Coller par Effacer, Inverser ⌘⇧I, Désélectionner ⌘D ; Inverser est actif dès qu'une image est ouverte (sans sélection, il sélectionne tout).
+- **Glisser l'image hors du canevas** : il faut maintenir **⌘** pendant le glisser (le clic simple reste la baguette, sélection au moment de l'appui) ; avec ⌘ le curseur devient une main ouverte et ⌘-clic sans glisser ne fait rien. Le glisser fournit une promesse de fichier (`NSFilePromiseProvider`, type PNG) nommée `<nom>-baguette.png` : le PNG est écrit directement à l'endroit du dépôt (Finder, autre app) plutôt que dans un fichier temporaire ; une écriture réussie compte comme un export (toast « Exporté », image marquée exportée si elle n'a pas changé entre-temps). Dépôt refusé à l'intérieur de l'app. Vignette du glisser : l'image réduite à 256 pt au plus.
+- **Export** : panneau d'enregistrement en feuille, dossier proposé = celui de l'image ouverte, nom `<nom>-baguette.png` (`image-baguette.png` à défaut). Échec d'écriture → alerte « Impossible d'exporter l'image » avec le message système. Le toast « Exporté » (bas centre, 2 s, fondu + glissement) se place au-dessus de la barre d'actions et est annoncé à VoiceOver.
+- **Fermer / quitter sans exporter** : alerte « Quitter sans exporter ? » (Annuler / Quitter, Quitter marqué destructif, Échap = Annuler, pas de bouton par défaut) en feuille sur la fenêtre, posée par `applicationShouldTerminate` (réponse différée). Comme l'app se ferme avec sa fenêtre unique, le bouton de fermeture / ⌘W ne pose pas sa propre question : `windowShouldClose` refuse la fermeture et lance `terminate`, ce qui garantit une seule alerte. `windowShouldClose` passe par un délégué intercalé devant celui de SwiftUI, qui lui transmet tous les autres messages.
+- **Menu Aide** : l'élément système « Toggle Sidebar ⌘S » (anglais, ajouté par SwiftUI sans barre latérale) est retiré au lancement et à chaque reconstruction des menus.
+- **Icône** : `scripts/make-icon.swift` dessine le SF Symbol `wand.and.stars` en blanc sur un carré arrondi (grille macOS 824/1024, rayon 185) au dégradé violet, puis `iconutil` produit `Sources/Baguette/Resources/AppIcon.icns`, versionnée. Le dossier `Resources` est exclu de la cible SwiftPM (c'est `bundle.sh` qui copie l'icône dans l'app). Un échec de la signature ad hoc affiche désormais un avertissement au lieu d'être ignoré.
+
+## État au 11/10/2026
+- Les 9 tâches du plan sont faites sur la branche `feat/app` ; 47 tests WandCore verts ; `./scripts/bundle.sh` produit `build/Baguette.app`.
+- Relu tâche par tâche, puis relecture finale de toute la branche (corrections appliquées : Couper/Copier/Coller conservés, ⌘= pour zoomer, pas d'écrasement au glisser-déposer, licence photocraft complète dans NOTICE, 50 annulations max).
+- **À vérifier à la main** (impossible pour les agents, sans accès à l'écran) : ⌘Z/⌘⇧Z depuis le menu, ⌫ après le popover/les alertes, pincement pour zoomer, dépôt d'un fichier sur le canevas, ⌘-glisser vers le Finder puis ouverture du PNG dans Aperçu, ⌘W/⌘Q avec modifications non exportées, ⌘A/⌘V dans le nom d'export, aspect du bouton Exporter.
+- **Plus tard** : contour progressif à 50 px lent (~2 s sur 24 Mpx), pas de limite de taille d'image au chargement, chargements concurrents, image légèrement floue à 100 % sur écran Retina.
